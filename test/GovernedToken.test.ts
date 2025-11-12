@@ -88,21 +88,10 @@ describe("GovernedToken", function () {
         .withArgs(owner.address, amount);
     });
 
-    it("用户应该能够自行销毁代币", async function () {
-      const amount = ethers.parseEther("100");
-      await token.transfer(addr1.address, amount);
-      
-      await expect(token.connect(addr1).burnSelf(amount))
-        .to.emit(token, "Redeem")
-        .withArgs(addr1.address, amount);
-      
-      expect(await token.balanceOf(addr1.address)).to.equal(0);
-    });
-
     it("销毁数量超过余额应该失败", async function () {
-      const amount = ethers.parseEther("100");
+      const amount = ethers.parseEther("100000000000");
       await expect(
-        token.connect(addr1).burnSelf(amount)
+        token.burn(addr1.address, amount)
       ).to.be.revertedWith("Insufficient balance");
     });
   });

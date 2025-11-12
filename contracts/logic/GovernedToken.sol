@@ -49,7 +49,7 @@ contract GovernedToken is Initializable, Ownable, ERC20Upgradeable, PausableUpgr
         _mint(msg.sender, TOTAL_SUPPLY);
     }
     
-    function decimals() public view virtual override returns (uint8) {
+    function decimals() public pure virtual override returns (uint8) {
         return 18;
     }
 
@@ -70,13 +70,6 @@ contract GovernedToken is Initializable, Ownable, ERC20Upgradeable, PausableUpgr
         require(balanceOf(account) >= amount, "Insufficient balance");
         _burn(account, amount);
         emit Redeem(account, amount);
-    }
-
-    // 用户自行销毁代币
-    function burnSelf(uint256 amount) external {
-        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
-        _burn(msg.sender, amount);
-        emit Redeem(msg.sender, amount);
     }
 
     // ========== 黑名单功能 ==========

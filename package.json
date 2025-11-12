@@ -2,6 +2,13 @@
   "name": "governed-token",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "deploy:sepolia": "hardhat ignition deploy ignition/modules/GovernedTokenModule.ts --network sepolia && npm run generate-verification",
+    "deploy:mainnet": "hardhat ignition deploy ignition/modules/GovernedTokenModule.ts --network mainnet && npm run generate-verification",
+    "generate-verification": "hardhat run scripts/generate-verification-files.ts",
+    "test": "hardhat test",
+    "compile": "hardhat compile"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.5",
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.1",

@@ -1,3 +1,14 @@
+### 环境
+node v22.21.1
+npm 10.9.4
+
+
+### 安装依赖
+
+```bash
+npm install
+```
+
 ### 第 1 步：配置环境变量
 
 ```bash
@@ -40,9 +51,15 @@ npx hardhat ignition deploy ignition/modules/GovernedTokenModule.ts --network se
 npx hardhat verify --network sepolia <合约地址>
 ```
 
+### 如果验证不成功
+则手动进行验证，生成验证文件，手动上传
+```bash
+npm run generate-verification
+```
+
 ## 📖 相关文档
 
-- **项目说明**: [README.md](../README.md)
+- **项目说明**: [README.md](./README.md)
 
 ## 💡 提示
 

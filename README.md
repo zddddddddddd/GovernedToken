@@ -1,186 +1,277 @@
-# GovernedToken - 资产管理份额代币合约
+# GovernedToken - 可治理的 ERC20 代币合约
 
-一个基于 ERC20 的中心化管理代币合约，专门用于资产管理份额的代币化。
+一个功能完善的 ERC20 代币智能合约，具有治理功能、黑名单管理、地址冻结、全局暂停和可升级特性。
 
-## 📋 合约信息
+## 特性
 
-- **合约名称**: GovernedToken
-- **代币名称**: Sure AM Shares
-- **代币符号**: Governed
-- **小数位数**: 0（不可分割）
-- **版本**: 0
-- **描述**: Sure Asset Management Shares Tokenization Contract
+### 核心功能
+- ✅ **ERC20 标准**: 完全兼容 ERC20 代币标准
+- ✅ **固定总量**: 初始铸造 25,000,000 GOV 代币
+- ✅ **18 位小数**: 标准的代币精度
+- ✅ **可升级**: 通过代理模式实现合约升级
+- ✅ **无手续费**: 转账不收取任何手续费
 
-## ✨ 核心功能
+### 治理功能
+- 🔐 **所有权管理**: 基于 Ownable 模式的权限控制
+- 🪙 **铸造代币**: 所有者可以铸造新代币
+- 🔥 **销毁代币**: 所有者可以销毁任意地址的代币
+- 🚫 **黑名单管理**: 禁止特定地址进行转账
+- ❄️ **地址冻结**: 冻结特定地址的转账功能
+- ⏸️ **全局暂停**: 暂停所有转账操作
+- 🚨 **强制转移**: 应急情况下强制转移代币
 
-### 1. 代币发行（Issue）
-- **功能**: 所有者可以给任何地址发行代币
-- **权限**: 仅所有者
-- **用途**: 投资者购买份额、新用户加入
-- **示例**: `issue("0x地址", 100)` - 发行 100 个份额
-
-### 2. 代币赎回（Redeem）
-- **功能**: 所有者可以从任何地址赎回（销毁）代币
-- **权限**: 仅所有者
-- **用途**: 投资者退出、赎回份额
-- **示例**: `redeem("0x地址", 50)` - 赎回 50 个份额
-
-### 3. 转账禁用
-- **特点**: 完全禁止用户之间转账
-- **原因**: 确保合规，防止私下交易
-- **适用**: 证券型代币、受监管资产
-
-### 4. 不可分割
-- **小数位**: 0
-- **意义**: 只能持有整数个代币（1、2、3...）
-- **优势**: 避免小数计算误差，份额清晰
-
-### 5. 所有权管理
-- 查询合约所有者
-- 转移所有权
-- 权限控制
-
-## 🎯 适用场景
-
-### ✅ 适合
-- 资产管理份额（基金、信托）
-- 证券型代币（Security Token）
-- 会员权益代币
-- 受监管的数字资产
-
-### ❌ 不适合
-- 去中心化代币
-- 自由交易的代币
-- 支付代币
-- DEX 交易
-
-## 🔧 可用方法
-
-### 只读方法（免费查询）
-
-- `name()` - 获取代币名称
-- `symbol()` - 获取代币符号
-- `decimals()` - 获取小数位数
-- `totalSupply()` - 获取总供应量
-- `balanceOf(address)` - 查询地址余额
-- `contractOwner()` - 获取合约所有者
-- `isOwner()` - 检查是否为所有者
-- `Version()` - 获取合约版本
-- `description()` - 获取合约描述
-
-### 写入方法（需要 Gas 和权限）
-
-**仅所有者可调用：**
-- `issue(address account, uint256 amount)` - 发行代币
-- `redeem(address account, uint256 amount)` - 赎回代币
-- `transferOwnership(address newOwner)` - 转移所有权
-
-**已禁用：**
-- `transfer()` - 转账功能已禁用
-- `transferFrom()` - 转账功能已禁用
-
-## 🔐 安全特性
-
-1. **所有权控制** - 只有所有者可以发行和赎回
-2. **转账限制** - 禁止用户间转账，确保合规
-3. **不可分割性** - 0 小数位确保份额完整性
-4. **事件记录** - 所有操作都有事件日志，可追溯
-5. **可升级性** - 通过代理模式部署，支持升级
-
-## 💻 使用示例
-
-### 查看合约信息
-```bash
-npx hardhat run scripts/quick-interact.ts --network sepolia
-```
-
-### 发行代币
-```bash
-# 编辑 scripts/issue-tokens.ts 修改接收地址和数量
-npx hardhat run scripts/issue-tokens.ts --network sepolia
-```
-
-### 使用 Hardhat Console
-```bash
-npx hardhat console --network sepolia
-```
-
-在控制台中：
-```javascript
-const connection = await network.connect();
-const { ethers } = connection;
-const token = await ethers.getContractAt("GovernedToken", "代理合约地址");
-
-// 发行代币
-await token.issue("0x地址", 100);
-
-// 查询余额
-await token.balanceOf("0x地址");
-
-// 赎回代币
-await token.redeem("0x地址", 50);
-```
-
-## 📊 与标准 ERC20 的区别
-
-| 功能 | 标准 ERC20 | GovernedToken |
-|------|-----------|---------------|
-| 发行代币 | 构造函数一次性发行 | 所有者可随时发行 |
-| 销毁代币 | 用户可自行销毁 | 只有所有者可赎回 |
-| 转账 | ✅ 自由转账 | ❌ 完全禁用 |
-| 小数位 | 通常 18 位 | 0 位（不可分割）|
-| 去中心化 | ✅ 完全去中心化 | ❌ 中心化管理 |
-
-## 🏗️ 项目结构
-
-```
-.
-├── contracts/           # 智能合约
-│   ├── logic/          # GovernedToken 业务逻辑
-│   ├── proxy/          # Proxy 代理合约
-│   └── utils/          # Ownable 工具合约
-├── test/               # 测试文件（53 个测试用例）
-├── scripts/            # 部署和交互脚本
-└── types/              # TypeScript 类型定义
-```
-
-## 🧪 测试
-
-```bash
-# 运行所有测试
-npx hardhat test
-
-# 运行特定测试
-npx hardhat test test/GovernedToken.test.ts
-```
-
-**测试覆盖**：
-- GovernedToken: 23 个测试
-- Ownable: 14 个测试
-- Proxy: 16 个测试
-- **总计**: 53 个测试全部通过 ✅
-
-## 📦 技术栈
+## 技术栈
 
 - Solidity ^0.8.13
-- Hardhat 3.x
-- ethers.js v6
+- Hardhat 3.0
+- OpenZeppelin Contracts Upgradeable 5.4.0
 - TypeScript
-- OpenZeppelin Contracts Upgradeable
-- Mocha + Chai
+- Ethers.js v6
 
-## ⚠️ 注意事项
+## 合约架构
 
-1. **中心化风险** - 所有权限集中在所有者手中
-2. **流动性限制** - 用户不能自由交易
-3. **所有者责任** - 需要妥善保管私钥
-4. **不可逆操作** - 发行和赎回操作不可撤销
-5. **升级风险** - 合约升级需要谨慎测试
+```
+GovernedToken (可升级实现合约)
+    ├── Initializable (OpenZeppelin)
+    ├── Ownable (自定义所有权管理)
+    ├── ERC20Upgradeable (OpenZeppelin)
+    └── PausableUpgradeable (OpenZeppelin)
 
-## 📄 许可证
+Proxy (代理合约)
+    └── 委托调用到 GovernedToken
+```
+
+## 合约功能详解
+
+### 1. 初始化
+
+```solidity
+function init() external
+```
+- 初始化代币名称为 "Governed Token"，符号为 "GOV"
+- 铸造 25,000,000 GOV 到部署者地址
+- 只能调用一次
+
+### 2. 铸造功能
+
+```solidity
+function mint(address account, uint256 amount) external onlyOwner
+```
+- 仅所有者可调用
+- 向指定地址铸造新代币
+- 不能向黑名单地址铸造
+- 触发 `Issue` 事件
+
+### 3. 销毁功能
+
+```solidity
+function burn(address account, uint256 amount) external onlyOwner
+```
+- 仅所有者可调用
+- 销毁指定地址的代币
+- 需要目标地址有足够余额
+- 触发 `Redeem` 事件
+
+### 4. 黑名单管理
+
+```solidity
+function addToBlacklist(address account) external onlyOwner
+function removeFromBlacklist(address account) external onlyOwner
+function isBlacklisted(address account) external view returns (bool)
+```
+- 黑名单地址无法进行任何转账（发送或接收）
+- 无法向黑名单地址铸造代币
+- 触发 `AddedToBlacklist` 或 `RemovedFromBlacklist` 事件
+
+### 5. 地址冻结
+
+```solidity
+function freezeAddress(address account) external onlyOwner
+function unfreezeAddress(address account) external onlyOwner
+function isFrozen(address account) external view returns (bool)
+```
+- 冻结的地址无法进行转账（发送或接收）
+- 与黑名单类似，但语义不同
+- 触发 `AddressFrozen` 或 `AddressUnfrozen` 事件
+
+### 6. 全局暂停
+
+```solidity
+function pause() external onlyOwner
+function unpause() external onlyOwner
+```
+- 暂停后，所有转账操作都会失败
+- 用于应急情况
+- 不影响查询功能
+
+### 7. 强制转移
+
+```solidity
+function forceTransfer(address from, address to, uint256 amount) external onlyOwner
+```
+- 仅所有者可调用
+- 可以绕过冻结和黑名单限制
+- 用于应急情况下的资产恢复
+- 触发 `ForcedTransfer` 事件
+
+### 8. 标准转账
+
+```solidity
+function transfer(address recipient, uint256 amount) public returns (bool)
+function transferFrom(address sender, address recipient, uint256 amount) public returns (bool)
+```
+- 标准 ERC20 转账功能
+- 会检查：暂停状态、黑名单、冻结状态
+- 无手续费
+
+### 9. 查询功能
+
+```solidity
+function balanceOf(address account) public view returns (uint256)
+function totalSupply() public view returns (uint256)
+function allowance(address owner, address spender) public view returns (uint256)
+function name() public view returns (string memory)
+function symbol() public view returns (string memory)
+function decimals() public view returns (uint8)
+function description() public pure returns (string memory)
+```
+
+## 重要提示
+
+### 关于代币数量和小数位
+
+代币有 **18 位小数**，在合约交互时需要特别注意：
+
+| 想要的代币数量 | 需要输入的值（Wei 单位） |
+|--------------|----------------------|
+| 1 个代币 | 1000000000000000000 |
+| 10 个代币 | 10000000000000000000 |
+| 100 个代币 | 100000000000000000000 |
+| 1,000 个代币 | 1000000000000000000000 |
+| 10,000 个代币 | 10000000000000000000000 |
+| 100,000 个代币 | 100000000000000000000000 |
+
+**计算公式**: `实际输入值 = 代币数量 × 10^18`
+
+**在线转换工具**: https://eth-converter.com/
+
+### 示例
+
+如果要转账 100 个代币：
+```javascript
+// JavaScript/TypeScript
+const amount = ethers.parseEther("100"); // 100000000000000000000
+
+// Solidity
+uint256 amount = 100 * 10**18;
+```
+
+## 事件
+
+```solidity
+event Issue(address indexed account, uint256 amount);
+event Redeem(address indexed account, uint256 amount);
+event AddedToBlacklist(address indexed account);
+event RemovedFromBlacklist(address indexed account);
+event AddressFrozen(address indexed account);
+event AddressUnfrozen(address indexed account);
+event ForcedTransfer(address indexed from, address indexed to, uint256 amount);
+event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+```
+
+## 安全特性
+
+1. **权限控制**: 所有管理功能都需要所有者权限
+2. **可暂停**: 发现问题时可以立即暂停所有转账
+3. **黑名单**: 可以禁止恶意地址参与
+4. **地址冻结**: 可以临时冻结可疑地址
+5. **可升级**: 通过代理模式可以修复漏洞或添加新功能
+6. **事件记录**: 所有重要操作都会触发事件，便于追踪
+
+## 测试
+
+项目包含完整的测试套件，覆盖所有功能：
+
+```bash
+npm test
+```
+
+测试包括：
+- ✅ 部署和初始化（7 个测试）
+- ✅ 铸造功能（3 个测试）
+- ✅ 销毁功能（2 个测试）
+- ✅ 转账功能（3 个测试）
+- ✅ 黑名单功能（3 个测试）
+- ✅ 地址冻结功能（3 个测试）
+- ✅ 全局暂停功能（3 个测试）
+- ✅ 强制转移功能（3 个测试）
+- ✅ 所有权管理（3 个测试）
+- ✅ Ownable 合约（13 个测试）
+- ✅ Proxy 合约（13 个测试）
+
+总计：**62 个测试**
+
+## 配置
+
+### 环境变量
+
+创建 `.env` 文件：
+
+```env
+# Sepolia 测试网 RPC URL
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID
+
+# 部署账户私钥（不要包含 0x 前缀）
+SEPOLIA_PRIVATE_KEY=your_private_key_here
+
+# Etherscan API Key（用于合约验证）
+ETHERSCAN_API_KEY=your_etherscan_api_key_here
+```
+
+### Hardhat 配置
+
+配置文件位于 `hardhat.config.ts`，包含：
+- Solidity 编译器版本：0.8.28
+- 网络配置：Sepolia、Mainnet
+- Etherscan 验证配置
+
+## 项目结构
+
+```
+GovernedToken/
+├── contracts/
+│   ├── logic/
+│   │   └── GovernedToken.sol      # 主合约
+│   ├── proxy/
+│   │   └── Proxy.sol               # 代理合约
+│   └── utils/
+│       └── Ownable.sol             # 所有权管理
+├── ignition/
+│   └── modules/
+│       └── GovernedTokenModule.ts  # 部署模块
+├── scripts/
+│   └── generate-verification-files.ts  # 生成验证文件
+├── test/
+│   ├── GovernedToken.test.ts       # 主合约测试
+│   ├── Ownable.test.ts             # Ownable 测试
+│   └── Proxy.test.ts               # Proxy 测试
+├── hardhat.config.ts               # Hardhat 配置
+├── package.json                    # 项目配置
+└── README.md                       # 本文档
+```
+
+## 许可证
 
 MIT License
 
-## 📚 相关文档
+## 贡献
 
-- [部署指南](./scripts/SETUP_COMPLETE.md) - 完整的部署和配置说明
+欢迎提交 Issue 和 Pull Request！
+
+## 联系方式
+
+如有问题或建议，请通过 GitHub Issues 联系。
+
+---
+
+**警告**: 本合约仅供学习和参考使用。在生产环境使用前，请务必进行完整的安全审计。
