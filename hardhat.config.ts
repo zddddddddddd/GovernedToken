@@ -43,29 +43,13 @@ export default defineConfig({
     sepolia: {
       type: "http",
       chainType: "l1",
-      url: process.env.SEPOLIA_RPC_URL || "",
+      url: process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
       accounts: process.env.SEPOLIA_PRIVATE_KEY ? [process.env.SEPOLIA_PRIVATE_KEY] : [],
-    },
-    etherscan: {
-      type: "http",
-      chainType: "l1",
-      url: process.env.ETHERSCAN_RPC_URL || "",
-      accounts: process.env.ETHERSCAN_PRIVATE_KEY ? [process.env.ETHERSCAN_PRIVATE_KEY] : [],
     }
   },
-  // etherscan: {
-  //   apiKey: {
-  //     sepolia: process.env.ETHERSCAN_API_KEY || "",
-  //   },
-  //   customChains: [
-  //     {
-  //       network: "sepolia",
-  //       chainId: 11155111,
-  //       urls: {
-  //         apiURL: "https://api-sepolia.etherscan.io/api",
-  //         browserURL: "https://sepolia.etherscan.io"
-  //       }
-  //     }
-  //   ]
-  // },
+  etherscan: {
+    apiKey: {
+      sepolia: process.env.ETHERSCAN_API_KEY || "",
+    },
+  },
 });

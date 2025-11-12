@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { network } from "hardhat";
-import type { GovernedToken } from "../types/ethers-contracts/logic/SureSharesToken.sol/GovernedToken.js";
+import type { GovernedToken } from "../types/ethers-contracts/logic/GovernedToken.js";
 
 describe("GovernedToken", function () {
   let token: GovernedToken;
@@ -23,112 +23,236 @@ describe("GovernedToken", function () {
 
   describe("部署和初始化", function () {
     it("应该正确设置代币名称", async function () {
-      expect(await token.name()).to.equal("Sure AM Shares");
+      expect(await token.name()).to.equal("Governed Token");
     });
 
     it("应该正确设置代币符号", async function () {
-      expect(await token.symbol()).to.equal("Governed");
+      expect(await token.symbol()).to.equal("GOV");
     });
 
-    it("应该正确设置小数位数为0", async function () {
-      expect(await token.decimals()).to.equal(0);
+    it("应该正确设置小数位数为18", async function () {
+      expect(await token.decimals()).to.equal(18);
     });
 
     it("应该返回正确的描述", async function () {
-      expect(await token.description()).to.equal("Sure Asset Management Shares Tokenization Contract");
+      expect(await token.description()).to.equal("ERC-20 Governed Token with Fixed Supply");
     });
 
     it("应该返回正确的版本号", async function () {
-      expect(await token.Version()).to.equal("0");
+      expect(await token.Version()).to.equal("1");
     });
 
     it("应该正确设置合约所有者", async function () {
       expect(await token.contractOwner()).to.equal(owner.address);
     });
+
+    it("应该铸造固定总量到部署者地址", async function () {
+      const expectedSupply = ethers.parseEther("25000000");
+      expect(await token.totalSupply()).to.equal(expectedSupply);
+      expect(await token.balanceOf(owner.address)).to.equal(expectedSupply);
+    });
   });
 
-  describe("发行代币 (Issue)", function () {
-    it("所有者应该能够发行代币", async function () {
-      const amount = 100;
-      await expect(token.issue(addr1.address, amount))
+  describe("铸造功能 (Mint)", function () {
+    it("所有者应该能够铸造代币", async function () {
+      const amount = ethers.parseEther("1000");
+      await expect(token.mint(addr1.address, amount))
         .to.emit(token, "Issue")
         .withArgs(addr1.address, amount);
       
-      expect(await token.balanceOf(addr1.address)).to.equal(amount);
+      const expectedBalance = ethers.parseEther("1000");
+      expect(await token.balanceOf(addr1.address)).to.equal(expectedBalance);
     });
 
-    it("应该正确更新总供应量", async function () {
-      const amount = 100;
-      await token.issue(addr1.address, amount);
-      expect(await token.totalSupply()).to.equal(amount);
-    });
-
-    it("非所有者不能发行代币", async function () {
+    it("非所有者不能铸造代币", async function () {
+      const amount = ethers.parseEther("100");
       await expect(
-        token.connect(addr1).issue(addr2.address, 100)
+        token.connect(addr1).mint(addr2.address, amount)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("应该能够多次发行代币", async function () {
-      await token.issue(addr1.address, 50);
-      await token.issue(addr1.address, 30);
-      expect(await token.balanceOf(addr1.address)).to.equal(80);
+    it("不能给黑名单地址铸造代币", async function () {
+      await token.addToBlacklist(addr1.address);
+      const amount = ethers.parseEther("100");
+      await expect(
+        token.mint(addr1.address, amount)
+      ).to.be.revertedWith("Address is blacklisted");
     });
   });
 
-  describe("赎回代币 (Redeem)", function () {
-    beforeEach(async function () {
-      await token.issue(addr1.address, 100);
+  describe("销毁功能 (Burn)", function () {
+    it("所有者应该能够销毁代币", async function () {
+      const amount = ethers.parseEther("1000");
+      await expect(token.burn(owner.address, amount))
+        .to.emit(token, "Redeem")
+        .withArgs(owner.address, amount);
     });
 
-    it("所有者应该能够赎回代币", async function () {
-      const amount = 50;
-      await expect(token.redeem(addr1.address, amount))
+    it("用户应该能够自行销毁代币", async function () {
+      const amount = ethers.parseEther("100");
+      await token.transfer(addr1.address, amount);
+      
+      await expect(token.connect(addr1).burnSelf(amount))
         .to.emit(token, "Redeem")
         .withArgs(addr1.address, amount);
       
-      expect(await token.balanceOf(addr1.address)).to.equal(50);
-    });
-
-    it("应该正确更新总供应量", async function () {
-      await token.redeem(addr1.address, 50);
-      expect(await token.totalSupply()).to.equal(50);
-    });
-
-    it("非所有者不能赎回代币", async function () {
-      await expect(
-        token.connect(addr1).redeem(addr1.address, 50)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-
-    it("赎回数量超过余额应该失败", async function () {
-      await expect(
-        token.redeem(addr1.address, 150)
-      ).to.be.revertedWith("Insufficient token");
-    });
-
-    it("应该能够赎回全部代币", async function () {
-      await token.redeem(addr1.address, 100);
       expect(await token.balanceOf(addr1.address)).to.equal(0);
+    });
+
+    it("销毁数量超过余额应该失败", async function () {
+      const amount = ethers.parseEther("100");
+      await expect(
+        token.connect(addr1).burnSelf(amount)
+      ).to.be.revertedWith("Insufficient balance");
     });
   });
 
-  describe("转账限制", function () {
+  describe("转账功能", function () {
     beforeEach(async function () {
-      await token.issue(addr1.address, 100);
+      const amount = ethers.parseEther("1000");
+      await token.transfer(addr1.address, amount);
     });
 
-    it("transfer 应该被禁用", async function () {
-      await expect(
-        token.connect(addr1).transfer(addr2.address, 50)
-      ).to.be.revertedWith("unsupported");
+    it("应该能够正常转账", async function () {
+      const amount = ethers.parseEther("100");
+      await token.connect(addr1).transfer(addr2.address, amount);
+      
+      expect(await token.balanceOf(addr2.address)).to.equal(amount);
     });
 
-    it("transferFrom 应该被禁用", async function () {
-      await token.connect(addr1).approve(owner.address, 50);
+    it("应该能够使用 transferFrom", async function () {
+      const amount = ethers.parseEther("100");
+      await token.connect(addr1).approve(owner.address, amount);
+      
+      await token.transferFrom(addr1.address, addr2.address, amount);
+      
+      expect(await token.balanceOf(addr2.address)).to.equal(amount);
+    });
+
+    it("暂停后不能转账", async function () {
+      await token.pause();
+      const amount = ethers.parseEther("100");
       await expect(
-        token.transferFrom(addr1.address, addr2.address, 50)
-      ).to.be.revertedWith("unsupported");
+        token.connect(addr1).transfer(addr2.address, amount)
+      ).to.be.revertedWithCustomError(token, "EnforcedPause");
+    });
+
+    it("黑名单地址不能转账", async function () {
+      await token.addToBlacklist(addr1.address);
+      const amount = ethers.parseEther("100");
+      await expect(
+        token.connect(addr1).transfer(addr2.address, amount)
+      ).to.be.revertedWith("Address is blacklisted");
+    });
+
+    it("冻结地址不能转账", async function () {
+      await token.freezeAddress(addr1.address);
+      const amount = ethers.parseEther("100");
+      await expect(
+        token.connect(addr1).transfer(addr2.address, amount)
+      ).to.be.revertedWith("Address is frozen");
+    });
+  });
+
+  describe("黑名单功能", function () {
+    it("所有者应该能够添加黑名单", async function () {
+      await expect(token.addToBlacklist(addr1.address))
+        .to.emit(token, "AddedToBlacklist")
+        .withArgs(addr1.address);
+      
+      expect(await token.isBlacklisted(addr1.address)).to.be.true;
+    });
+
+    it("所有者应该能够移除黑名单", async function () {
+      await token.addToBlacklist(addr1.address);
+      
+      await expect(token.removeFromBlacklist(addr1.address))
+        .to.emit(token, "RemovedFromBlacklist")
+        .withArgs(addr1.address);
+      
+      expect(await token.isBlacklisted(addr1.address)).to.be.false;
+    });
+
+    it("非所有者不能操作黑名单", async function () {
+      await expect(
+        token.connect(addr1).addToBlacklist(addr2.address)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
+  describe("地址冻结功能", function () {
+    it("所有者应该能够冻结地址", async function () {
+      await expect(token.freezeAddress(addr1.address))
+        .to.emit(token, "AddressFrozen")
+        .withArgs(addr1.address);
+      
+      expect(await token.isFrozen(addr1.address)).to.be.true;
+    });
+
+    it("所有者应该能够解冻地址", async function () {
+      await token.freezeAddress(addr1.address);
+      
+      await expect(token.unfreezeAddress(addr1.address))
+        .to.emit(token, "AddressUnfrozen")
+        .withArgs(addr1.address);
+      
+      expect(await token.isFrozen(addr1.address)).to.be.false;
+    });
+
+    it("非所有者不能冻结地址", async function () {
+      await expect(
+        token.connect(addr1).freezeAddress(addr2.address)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
+  describe("全局暂停功能", function () {
+    it("所有者应该能够暂停合约", async function () {
+      await token.pause();
+      expect(await token.paused()).to.be.true;
+    });
+
+    it("所有者应该能够恢复合约", async function () {
+      await token.pause();
+      await token.unpause();
+      expect(await token.paused()).to.be.false;
+    });
+
+    it("非所有者不能暂停合约", async function () {
+      await expect(
+        token.connect(addr1).pause()
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
+  describe("强制转移功能", function () {
+    beforeEach(async function () {
+      const amount = ethers.parseEther("1000");
+      await token.transfer(addr1.address, amount);
+    });
+
+    it("所有者应该能够强制转移代币", async function () {
+      const amount = ethers.parseEther("100");
+      await expect(token.forceTransfer(addr1.address, addr2.address, amount))
+        .to.emit(token, "ForcedTransfer")
+        .withArgs(addr1.address, addr2.address, amount);
+      
+      expect(await token.balanceOf(addr2.address)).to.equal(amount);
+    });
+
+    it("非所有者不能强制转移", async function () {
+      const amount = ethers.parseEther("100");
+      await expect(
+        token.connect(addr1).forceTransfer(addr1.address, addr2.address, amount)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("强制转移可以绕过冻结限制", async function () {
+      await token.freezeAddress(addr1.address);
+      const amount = ethers.parseEther("100");
+      
+      await expect(token.forceTransfer(addr1.address, addr2.address, amount))
+        .to.emit(token, "ForcedTransfer");
     });
   });
 
@@ -141,34 +265,19 @@ describe("GovernedToken", function () {
       expect(await token.contractOwner()).to.equal(addr1.address);
     });
 
-    it("新所有者应该能够发行代币", async function () {
+    it("新所有者应该能够铸造代币", async function () {
       await token.transferOwnership(addr1.address);
-      await expect(token.connect(addr1).issue(addr2.address, 100))
+      const amount = ethers.parseEther("100");
+      await expect(token.connect(addr1).mint(addr2.address, amount))
         .to.emit(token, "Issue");
     });
 
-    it("旧所有者不能再发行代币", async function () {
+    it("旧所有者不能再操作", async function () {
       await token.transferOwnership(addr1.address);
+      const amount = ethers.parseEther("100");
       await expect(
-        token.issue(addr2.address, 100)
+        token.mint(addr2.address, amount)
       ).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-
-    it("非所有者不能转移所有权", async function () {
-      await expect(
-        token.connect(addr1).transferOwnership(addr2.address)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-
-    it("不能转移所有权给零地址", async function () {
-      await expect(
-        token.transferOwnership(ethers.ZeroAddress)
-      ).to.be.revertedWith("Ownable: new owner is the zero address");
-    });
-
-    it("isOwner 应该正确返回", async function () {
-      expect(await token.isOwner()).to.be.true;
-      expect(await token.connect(addr1).isOwner()).to.be.false;
     });
   });
 });

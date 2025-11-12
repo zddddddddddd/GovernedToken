@@ -4,11 +4,6 @@ const GovernedTokenModule = buildModule("GovernedTokenModule", (m) => {
   // 部署 GovernedToken 实现合约
   const governedToken = m.contract("GovernedToken");
 
-  // 初始化 GovernedToken
-  m.call(governedToken, "init", [], {
-    id: "init_governed_token",
-  });
-
   // 部署 Proxy 合约
   const proxy = m.contract("Proxy");
 
@@ -23,7 +18,7 @@ const GovernedTokenModule = buildModule("GovernedTokenModule", (m) => {
     id: "proxied_token",
   });
 
-  // 通过代理初始化 GovernedToken
+  // 通过代理初始化 GovernedToken（会铸造固定总量到部署者地址）
   m.call(proxiedToken, "init", [], {
     id: "init_proxied_token",
     after: [proxy],

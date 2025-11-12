@@ -39,7 +39,7 @@ describe("Proxy", function () {
       const implAddr = await implementation.getAddress();
       await expect(proxy.setTarget(implAddr))
         .to.emit(proxy, "ProxyTargetSet")
-        .withArgs(implAddr);
+        .withArgs(ethers.ZeroAddress, implAddr);
       
       const targetAddr = await proxy.implementation();
       expect(targetAddr).to.equal(implAddr);
@@ -61,7 +61,7 @@ describe("Proxy", function () {
       
       await expect(proxy.setTarget(impl2Addr))
         .to.emit(proxy, "ProxyTargetSet")
-        .withArgs(impl2Addr);
+        .withArgs(implAddr, impl2Addr);
       
       const targetAddr = await proxy.implementation();
       expect(targetAddr).to.equal(impl2Addr);
@@ -72,7 +72,7 @@ describe("Proxy", function () {
     it("所有者应该能够转移所有权", async function () {
       await expect(proxy.setOwner(addr1.address))
         .to.emit(proxy, "ProxyOwnerChanged")
-        .withArgs(addr1.address);
+        .withArgs(owner.address, addr1.address);
       
       expect(await proxy.owner()).to.equal(addr1.address);
     });
@@ -117,12 +117,12 @@ describe("Proxy", function () {
     });
 
     it("应该能够通过代理调用实现合约的函数", async function () {
-      expect(await proxiedToken.name()).to.equal("Sure AM Shares");
-      expect(await proxiedToken.symbol()).to.equal("Governed");
+      expect(await proxiedToken.name()).to.equal("Governed Token");
+      expect(await proxiedToken.symbol()).to.equal("GOV");
     });
 
     it("应该能够通过代理发行代币", async function () {
-      await expect(proxiedToken.issue(addr1.address, 100))
+      await expect(proxiedToken.mint(addr1.address, 100))
         .to.emit(proxiedToken, "Issue")
         .withArgs(addr1.address, 100);
       
@@ -130,8 +130,8 @@ describe("Proxy", function () {
     });
 
     it("应该能够通过代理赎回代币", async function () {
-      await proxiedToken.issue(addr1.address, 100);
-      await expect(proxiedToken.redeem(addr1.address, 50))
+      await proxiedToken.mint(addr1.address, 100);
+      await expect(proxiedToken.burn(addr1.address, 50))
         .to.emit(proxiedToken, "Redeem")
         .withArgs(addr1.address, 50);
       
@@ -139,14 +139,14 @@ describe("Proxy", function () {
     });
 
     it("代理状态应该独立于实现合约", async function () {
-      await proxiedToken.issue(addr1.address, 100);
+      await proxiedToken.mint(addr1.address, 100);
       
       expect(await proxiedToken.balanceOf(addr1.address)).to.equal(100);
       expect(await implementation.balanceOf(addr1.address)).to.equal(0);
     });
 
     it("应该能够升级到新的实现合约", async function () {
-      await proxiedToken.issue(addr1.address, 100);
+      await proxiedToken.mint(addr1.address, 100);
       
       const implementation2 = await ethers.deployContract("GovernedToken");
       const impl2Addr = await implementation2.getAddress();

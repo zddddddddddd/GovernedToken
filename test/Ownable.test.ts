@@ -68,13 +68,13 @@ describe("Ownable", function () {
 
   describe("onlyOwner 修饰符", function () {
     it("所有者应该能够调用受保护的函数", async function () {
-      await expect(contract.issue(addr1.address, 100))
+      await expect(contract.mint(addr1.address, 100))
         .to.emit(contract, "Issue");
     });
 
     it("非所有者不能调用受保护的函数", async function () {
       await expect(
-        contract.connect(addr1).issue(addr2.address, 100)
+        contract.connect(addr1).mint(addr2.address, 100)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
